@@ -23,7 +23,7 @@ describe("@aphrody/shenron-config/public-urls", () => {
       "https://dragonballfr.com/assets/dbz/characters/bulma.webp?v=1#frame",
     ]) {
       expect(canonicalDbzAssetUrl(source)).toBe(
-        "https://cdn.dragonballfr.com/dbz/characters/bulma.webp?v=1#frame",
+        "https://cdn.dragonballfr.com/assets/dbz/characters/bulma.webp?v=1#frame",
       );
     }
   });
@@ -40,9 +40,14 @@ describe("@aphrody/shenron-config/public-urls", () => {
         "./assets/dbz/characters/Bulma%20art.webp?x=%2F#scene",
         "https://bot.dragonballfr.com",
       ),
-    ).toBe("https://cdn.dragonballfr.com/dbz/characters/Bulma%20art.webp?x=%2F#scene");
+    ).toBe("https://cdn.dragonballfr.com/assets/dbz/characters/Bulma%20art.webp?x=%2F#scene");
     expect(canonicalDbzAssetUrl("/assets/dbz/characters/bulma.webp", "https://assets.test")).toBe(
-      "https://assets.test/dbz/characters/bulma.webp",
+      "https://assets.test/assets/dbz/characters/bulma.webp",
+    );
+  });
+  test("preserves the public inventory namespace for CAS-only artwork", () => {
+    expect(canonicalDbzAssetUrl("./assets/dbz/characters/Android19.webp")).toBe(
+      "https://cdn.dragonballfr.com/assets/dbz/characters/Android19.webp",
     );
   });
   test("defaults apply with an empty environment", () => {

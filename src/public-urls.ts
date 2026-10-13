@@ -96,7 +96,7 @@ export function resolveAssetsUrl(env: PublicUrlEnv): string {
   return firstSet(env, PUBLIC_URL_ENV.assets) ?? resolveApiUrl(env);
 }
 
-/** Legacy DBZ artwork lives at /dbz on the public CDN, independently of bot uploads. */
+/** Route legacy DBZ artwork to the public CDN while preserving its manifest path. */
 export function canonicalDbzAssetUrl(
   source: string,
   assetsBase: string = DEFAULT_PUBLIC_ORIGINS.cdn,
@@ -124,7 +124,7 @@ export function canonicalDbzAssetUrl(
   const destination = [originOf(apiBase), originOf(siteBase)].includes(assets)
     ? DEFAULT_PUBLIC_ORIGINS.cdn
     : assetsBase;
-  return `${joinUrl(destination, url.pathname.replace(/^\/assets\/dbz\//, "/dbz/"))}${url.search}${url.hash}`;
+  return `${joinUrl(destination, url.pathname)}${url.search}${url.hash}`;
 }
 
 /** Joins `path` onto `base`, collapsing duplicate slashes at the seam. */
