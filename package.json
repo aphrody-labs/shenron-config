@@ -59,9 +59,9 @@
     "registry": "https://registry.npmjs.org/"
   },
   "scripts": {
-    "lint": "oxlint -c ../../.oxlintrc.json",
+    "lint": "bun ../../scripts/testing/native-quality.ts lint packages/config/src packages/config/test",
     "test": "bun test",
-    "typecheck": "bun check --noEmit --project tsconfig.json"
+    "typecheck": "bun check --project tsconfig.json"
   },
   "dependencies": {
     "@aphrody/paths": "catalog:",
