@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import {
   DEFAULT_PUBLIC_ORIGINS,
   canonicalDbzAssetUrl,
+  canonicalLegacyCdnAssetUrl,
   assetMirrorUrl,
   discordDefaultAvatar,
   joinUrl,
@@ -11,6 +12,21 @@ import {
   resolveAssetsUrl,
   resolveSiteUrl,
 } from "../src/public-urls";
+
+test("verified ADN media on the legacy worker retains its content path on the canonical CDN", () => {
+  const path = "/adn/dc091e3b7b0940c8a6f3567b600be69736198f63d776224fb2fce12481e28d19.png";
+  expect(
+    canonicalLegacyCdnAssetUrl(`https://shenron-cdn.aphrody-labs.workers.dev${path}?v=2#frame`),
+  ).toBe(`https://cdn.dragonballfr.com${path}?v=2#frame`);
+  for (const source of [
+    `https://foreign.workers.dev${path}`,
+    `https://shenron-cdn.aphrody-labs.workers.dev/api/public/profile/1/card.png`,
+    `https://user@shenron-cdn.aphrody-labs.workers.dev${path}`,
+    `https://shenron-cdn.aphrody-labs.workers.dev/adn/not-a-content-hash.png`,
+  ]) {
+    expect(canonicalLegacyCdnAssetUrl(source)).toBeNull();
+  }
+});
 
 describe("@aphrody/shenron-config/public-urls", () => {
   test("routes measured legacy DBZ artwork to its canonical CDN namespace", () => {

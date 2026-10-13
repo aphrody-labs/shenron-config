@@ -127,6 +127,20 @@ export function canonicalDbzAssetUrl(
   return `${joinUrl(destination, url.pathname)}${url.search}${url.hash}`;
 }
 
+/** Canonical origin for the verified content-addressed ADN assets on the former worker. */
+export function canonicalLegacyCdnAssetUrl(source: string): string | null {
+  if (!URL.canParse(source)) return null;
+  const url = new URL(source);
+  if (
+    url.origin !== "https://shenron-cdn.aphrody-labs.workers.dev" ||
+    url.username ||
+    url.password ||
+    !/^\/adn\/[a-f0-9]{64}\.png$/.test(url.pathname)
+  )
+    return null;
+  return `${DEFAULT_PUBLIC_ORIGINS.cdn}${url.pathname}${url.search}${url.hash}`;
+}
+
 /** Joins `path` onto `base`, collapsing duplicate slashes at the seam. */
 export function joinUrl(base: string, path = ""): string {
   const b = trimSlash(base);
@@ -258,6 +272,7 @@ export function ownImageRemotePatterns(env: PublicUrlEnv): RemoteImagePattern[] 
   const candidates = [
     patternFor(DEFAULT_PUBLIC_ORIGINS.cdn, "/assets/**"),
     patternFor(DEFAULT_PUBLIC_ORIGINS.cdn, "/dbz/**"),
+    patternFor(DEFAULT_PUBLIC_ORIGINS.cdn, "/adn/*.png"),
     patternFor(resolveAssetsUrl(env), "/assets/**"),
     patternFor(resolveAssetsUrl(env), "/dbz/**"),
     patternFor(api, "/db/**"),
