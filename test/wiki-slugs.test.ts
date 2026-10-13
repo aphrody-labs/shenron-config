@@ -62,11 +62,42 @@ describe("wiki-slugs", () => {
   it("la table canonique ne sert pas une autre fiche (régression 2026-09-12 : /broly → Dyspo)", () => {
     expect(resolveCharacterParam("broly").id).toBe(68);
     expect(resolveCharacterParam("whis").id).toBe(34);
-    expect(resolveCharacterParam("beerus").id).toBe(208);
+    expect(resolveCharacterParam("beerus").id).toBe(33);
     expect(resolveCharacterParam("dende").id).toBe(21);
     expect(resolveCharacterParam("vegetto").id).toBe(66);
     expect(resolveCharacterParam("bardock").canonicalSlug).toBe("baddack");
     expect(resolveCharacterParam("plume").canonicalSlug).toBe("launch");
+  });
+
+  it("resolves C-17 and Beerus aliases to the existing public editorial records", () => {
+    // Public API read on 2026-10-13: /api/public/wiki/characters/{22,33}.
+    // /208 and /279 returned 404; no replacement content is fabricated here.
+    const records = [
+      {
+        id: 22,
+        name: "Android 17",
+        slug: "c-17",
+        formerId: 279,
+        aliases: ["android-17", "cyborg-17"],
+      },
+      { id: 33, name: "Bills", slug: "beerus", formerId: 208, aliases: ["bills", "birusu"] },
+    ];
+    for (const record of records) {
+      expect(formatCharacterSlug(record)).toBe(record.slug);
+      for (const param of [
+        record.slug,
+        ...record.aliases,
+        String(record.id),
+        String(record.formerId),
+      ]) {
+        const resolved = resolveCharacterParam(param);
+        expect(resolved.id).toBe(record.id);
+        expect(resolved.canonicalSlug).toBe(record.slug);
+      }
+      expect(resolveCharacterParam(String(record.formerId)).isAlias).toBe(true);
+    }
+    expect(formatCharacterSlug({ id: 286, name: "C-17 (futur)" })).toBe("c-17-futur");
+    expect(formatCharacterSlug({ id: 215, name: "Beerus (futur)" })).toBe("beerus-futur");
   });
 
   it("résout cosmologie et planètes", () => {

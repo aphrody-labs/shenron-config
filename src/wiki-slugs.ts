@@ -38,10 +38,12 @@ export const CHARACTER_CANONICAL_SLUGS: Record<number, string> = {
   19: "launch",
   20: "mr-satan",
   21: "dende",
+  22: "c-17",
   25: "dr-gero",
   30: "raditz",
   31: "babidi",
   32: "majin-buu",
+  33: "beerus",
   34: "whis",
   35: "zeno",
   37: "kibitoshin",
@@ -74,10 +76,8 @@ export const CHARACTER_CANONICAL_SLUGS: Record<number, string> = {
   112: "vados",
   124: "paikuhan",
   180: "baby-vegeta",
-  208: "beerus",
   253: "bra",
   276: "c-19",
-  279: "c-17",
   280: "c-18",
   281: "c-16",
   298: "c-21",
@@ -104,6 +104,8 @@ export const CHARACTER_CANONICAL_SLUGS: Record<number, string> = {
  * Évite les erreurs 404 sur les anciens liens, fiches d'anciennes versions et moteurs de recherche.
  */
 export const CHARACTER_DUPLICATE_REDIRECTS: Record<number, number> = {
+  208: 33, // Beerus: public editorial record formerly mapped to the absent ID.
+  279: 22, // C-17: public editorial record formerly mapped to the absent ID.
   1044: 1018, // Roi Vegeta (Xeno) -> Roi Vegeta
   1149: 1, // Son Goku (Xeno) -> Son Goku
   1158: 1, // Son Goku (SDBH) -> Son Goku
