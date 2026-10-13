@@ -2,6 +2,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   DEFAULT_PUBLIC_ORIGINS,
+  canonicalDbzAssetUrl,
   assetMirrorUrl,
   discordDefaultAvatar,
   joinUrl,
@@ -12,6 +13,38 @@ import {
 } from "../src/public-urls";
 
 describe("@aphrody/shenron-config/public-urls", () => {
+  test("routes measured legacy DBZ artwork to its canonical CDN namespace", () => {
+    for (const source of [
+      "assets/dbz/characters/bulma.webp?v=1#frame",
+      "./assets/dbz/characters/bulma.webp?v=1#frame",
+      "/assets/dbz/characters/bulma.webp?v=1#frame",
+      "https://cdn.dragonballfr.com/assets/dbz/characters/bulma.webp?v=1#frame",
+      "https://bot.dragonballfr.com/assets/dbz/characters/bulma.webp?v=1#frame",
+      "https://dragonballfr.com/assets/dbz/characters/bulma.webp?v=1#frame",
+    ]) {
+      expect(canonicalDbzAssetUrl(source)).toBe(
+        "https://cdn.dragonballfr.com/dbz/characters/bulma.webp?v=1#frame",
+      );
+    }
+  });
+  test("keeps runtime wiki uploads and foreign resources outside the DBZ mapping", () => {
+    for (const source of [
+      "./assets/wiki/characters/a.png",
+      "/assets/manga/1.jpg",
+      "https://foreign.test/assets/dbz/characters/bulma.webp",
+      "https://user:password@cdn.dragonballfr.com/assets/dbz/characters/bulma.webp",
+    ])
+      expect(canonicalDbzAssetUrl(source)).toBeNull();
+    expect(
+      canonicalDbzAssetUrl(
+        "./assets/dbz/characters/Bulma%20art.webp?x=%2F#scene",
+        "https://bot.dragonballfr.com",
+      ),
+    ).toBe("https://cdn.dragonballfr.com/dbz/characters/Bulma%20art.webp?x=%2F#scene");
+    expect(canonicalDbzAssetUrl("/assets/dbz/characters/bulma.webp", "https://assets.test")).toBe(
+      "https://assets.test/dbz/characters/bulma.webp",
+    );
+  });
   test("defaults apply with an empty environment", () => {
     expect(resolveSiteUrl({})).toBe(DEFAULT_PUBLIC_ORIGINS.site);
     expect(resolveApiUrl({})).toBe(DEFAULT_PUBLIC_ORIGINS.api);

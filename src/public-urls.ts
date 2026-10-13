@@ -96,6 +96,37 @@ export function resolveAssetsUrl(env: PublicUrlEnv): string {
   return firstSet(env, PUBLIC_URL_ENV.assets) ?? resolveApiUrl(env);
 }
 
+/** Legacy DBZ artwork lives at /dbz on the public CDN, independently of bot uploads. */
+export function canonicalDbzAssetUrl(
+  source: string,
+  assetsBase: string = DEFAULT_PUBLIC_ORIGINS.cdn,
+  apiBase: string = DEFAULT_PUBLIC_ORIGINS.api,
+  siteBase: string = DEFAULT_PUBLIC_ORIGINS.site,
+): string | null {
+  const value = source.trim();
+  const relative = /^(?:\.\/|\/)?assets\/dbz\//.test(value);
+  if (!relative && !URL.canParse(value)) return null;
+  const url = relative
+    ? new URL(`/${value.replace(/^(?:\.\/|\/)/, "")}`, DEFAULT_PUBLIC_ORIGINS.site)
+    : new URL(value);
+  if (url.username || url.password || !["http:", "https:"].includes(url.protocol)) return null;
+  const origins = [
+    DEFAULT_PUBLIC_ORIGINS.cdn,
+    DEFAULT_PUBLIC_ORIGINS.api,
+    DEFAULT_PUBLIC_ORIGINS.site,
+    assetsBase,
+    apiBase,
+    siteBase,
+  ].map(originOf);
+  if (!relative && !origins.includes(url.origin)) return null;
+  if (!url.pathname.startsWith("/assets/dbz/")) return null;
+  const assets = originOf(assetsBase);
+  const destination = [originOf(apiBase), originOf(siteBase)].includes(assets)
+    ? DEFAULT_PUBLIC_ORIGINS.cdn
+    : assetsBase;
+  return `${joinUrl(destination, url.pathname.replace(/^\/assets\/dbz\//, "/dbz/"))}${url.search}${url.hash}`;
+}
+
 /** Joins `path` onto `base`, collapsing duplicate slashes at the seam. */
 export function joinUrl(base: string, path = ""): string {
   const b = trimSlash(base);
@@ -226,7 +257,9 @@ export function ownImageRemotePatterns(env: PublicUrlEnv): RemoteImagePattern[] 
   const site = resolveSiteUrl(env);
   const candidates = [
     patternFor(DEFAULT_PUBLIC_ORIGINS.cdn, "/assets/**"),
+    patternFor(DEFAULT_PUBLIC_ORIGINS.cdn, "/dbz/**"),
     patternFor(resolveAssetsUrl(env), "/assets/**"),
+    patternFor(resolveAssetsUrl(env), "/dbz/**"),
     patternFor(api, "/db/**"),
     patternFor(api, "/assets/**"),
     // Full Color pages: stable URL answering a 302 to Discord's signed CDN. The former
