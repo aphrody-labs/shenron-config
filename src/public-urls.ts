@@ -270,6 +270,7 @@ export function ownImageRemotePatterns(env: PublicUrlEnv): RemoteImagePattern[] 
   const api = resolveApiUrl(env);
   const site = resolveSiteUrl(env);
   const candidates = [
+    patternFor("https://www.carddass.com", "/dbh/sdbh/**"),
     patternFor(DEFAULT_PUBLIC_ORIGINS.cdn, "/assets/**"),
     patternFor(DEFAULT_PUBLIC_ORIGINS.cdn, "/dbz/**"),
     patternFor(DEFAULT_PUBLIC_ORIGINS.cdn, "/adn/*.png"),

@@ -133,6 +133,10 @@ describe("ownImageRemotePatterns and Discord helpers", () => {
     expect(keys).toContain("https://api.test/assets/**");
     expect(keys).toContain("https://site.test/assets/**");
     expect(keys).toContain("https://cdn.discordapp.com/**");
+    expect(keys).toContain("https://www.carddass.com/dbh/sdbh/**");
+    expect(pats.filter((p) => p.hostname === "www.carddass.com")).toEqual([
+      { protocol: "https", hostname: "www.carddass.com", pathname: "/dbh/sdbh/**" },
+    ]);
     // Full Color pages: the `/color/` path, and the former `/couleur/` stored in the database.
     expect(keys).toContain("https://api.test/api/public/manga/color/**");
     expect(keys).toContain("https://api.test/api/public/manga/couleur/**");
