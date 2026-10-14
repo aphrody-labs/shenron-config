@@ -134,6 +134,10 @@ describe("ownImageRemotePatterns and Discord helpers", () => {
     expect(keys).toContain("https://site.test/assets/**");
     expect(keys).toContain("https://cdn.discordapp.com/**");
     expect(keys).toContain("https://www.carddass.com/dbh/sdbh/**");
+    expect(keys).toContain(
+      "https://cdn.dragonballfr.com/publications/nozawa-yamaguchi-sdbh-ja/objects/**",
+    );
+    expect(keys).not.toContain("https://cdn.dragonballfr.com/publications/**");
     expect(pats.filter((p) => p.hostname === "www.carddass.com")).toEqual([
       { protocol: "https", hostname: "www.carddass.com", pathname: "/dbh/sdbh/**" },
     ]);
