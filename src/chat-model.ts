@@ -44,6 +44,9 @@ export const CHAT_MODEL_IDS = {
 /** Chat backends outside production: the local models, then the Gemini web app (remote). */
 export const DEFAULT_LOCAL_CHAT_BACKENDS = "local,gemini-web";
 
+/** Public sourced answers: a few concise facts and citations, without unbounded CPU generation. */
+export const PUBLIC_RAG_CHAT_MAX_OUTPUT_TOKENS = 256;
+
 /** Model answering when a request names none. */
 export const DEFAULT_CHAT_MODEL_ID = CHAT_MODEL_IDS.shenron;
 
