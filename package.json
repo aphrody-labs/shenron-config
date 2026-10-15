@@ -17,6 +17,7 @@
   "sideEffects": false,
   "exports": {
     "./env": "./src/env.ts",
+    "./jev": "./src/jev.ts",
     "./net": "./src/net.ts",
     "./paths": "./src/paths.ts",
     "./public-urls": "./src/public-urls.ts",
@@ -75,6 +76,7 @@
     "runtime": {
       "./admin": "pure",
       "./env": "pure",
+      "./jev": "pure",
       "./net": "pure",
       "./paths": "server",
       "./public-urls": "pure",
