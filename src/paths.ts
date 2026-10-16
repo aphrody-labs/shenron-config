@@ -19,7 +19,8 @@ export type DataPathKey =
   | "coordDir"
   | "databooksFreezeFile"
   | "ragLexique"
-  | "privateDownloadsDir";
+  | "privateDownloadsDir"
+  | "releasesDir";
 
 /** Variables that may relocate each path, in priority order (first set wins). */
 export const DATA_PATH_ENV: Readonly<Record<DataPathKey, readonly string[]>> = Object.freeze({
@@ -29,7 +30,14 @@ export const DATA_PATH_ENV: Readonly<Record<DataPathKey, readonly string[]>> = O
   databooksFreezeFile: Object.freeze(["DATABOOKS_FREEZE_FILE"]),
   ragLexique: Object.freeze(["RAG_LEXIQUE"]),
   privateDownloadsDir: Object.freeze(["SHENRON_PRIVATE_DOWNLOADS_DIR"]),
+  releasesDir: Object.freeze(["SHENRON_RELEASES_DIR"]),
 });
+
+/**
+ * Public release files (`/download`, `/api/releases`): binaries and libraries with their
+ * `SHA256SUMS` and `latest.json`, written by `scripts/release/publish-downloads.ts`.
+ */
+export const DEFAULT_RELEASES_DIR = "/srv/shenron/shared/releases";
 
 /**
  * Admin-only downloads of the site (`/api/private-downloads`): Shenron Studio installers and

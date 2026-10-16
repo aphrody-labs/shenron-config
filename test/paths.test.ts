@@ -19,6 +19,7 @@ describe("DATA_PATH_ENV", () => {
       databooksFreezeFile: ["DATABOOKS_FREEZE_FILE"],
       ragLexique: ["RAG_LEXIQUE"],
       privateDownloadsDir: ["SHENRON_PRIVATE_DOWNLOADS_DIR"],
+      releasesDir: ["SHENRON_RELEASES_DIR"],
     });
   });
 });
