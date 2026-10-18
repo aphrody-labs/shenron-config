@@ -58,6 +58,17 @@ export const DEFAULT_PUBLIC_ORIGINS = {
  */
 export const DEFAULT_DISCORD_INVITE = "https://discord.gg/dragonballfr";
 
+/** Browser entry point owned by the Bun OS Play streaming service. */
+export const BUN_OS_PLAY_ORIGIN = "https://play.aphrody.app";
+
+/** Selects a Steam title; availability and session authorization remain owned by Play. */
+export function bunOsPlayUrl(appId: number): string {
+  if (!Number.isSafeInteger(appId) || appId <= 0) throw new RangeError("Invalid Steam app ID");
+  const url = new URL("/stream", BUN_OS_PLAY_ORIGIN);
+  url.searchParams.set("appId", String(appId));
+  return url.href;
+}
+
 /** Origin of the local Next dev server, allowed by CORS outside production only. */
 export const DEV_SITE_ORIGIN = "http://localhost:3000";
 
