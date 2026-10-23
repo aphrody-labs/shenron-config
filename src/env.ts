@@ -65,6 +65,23 @@ export const ENV_ALIASES = {
 } as const satisfies Record<string, readonly [string, string]>;
 
 /**
+ * Variables of the Arène Shenron Activity (docs/operations/ENV.md, section "Activité").
+ * Names only: the secret and the token are read by their owners at call time.
+ */
+export const ACTIVITY_ENV = {
+  /**
+   * HMAC-SHA256 key (16 bytes at least) of the settlement receipts, shared by the Activity server
+   * (which signs) and the bot (which verifies). Distinct from `API_USER_SECRET` on purpose.
+   */
+  secret: "SHENRON_ACTIVITY_SECRET",
+  /**
+   * Bearer token the Activity server presents to the bot's `/api/activity/*` routes. Optional:
+   * the admin token is accepted too, a dedicated token only limits what a leak can do.
+   */
+  token: "SHENRON_ACTIVITY_TOKEN",
+} as const;
+
+/**
  * Returns a `mismatch` issue when at least two of `names` are set to different
  * values, `null` otherwise. The issue names the variables, never the values.
  */

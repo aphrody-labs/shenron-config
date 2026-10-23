@@ -2,6 +2,7 @@
 import { describe, expect, test } from "bun:test";
 import { z } from "zod";
 import {
+  ACTIVITY_ENV,
   checkAlias,
   ENV_ALIASES,
   envFirst,
@@ -117,5 +118,18 @@ describe("parseEnv", () => {
       expect(result.issues[0]?.name).toBe("KEY");
       assertNoSecret(result.issues);
     }
+  });
+});
+
+describe("ACTIVITY_ENV", () => {
+  test("names the receipt secret and the optional service token, distinct from the user secret", () => {
+    expect(ACTIVITY_ENV).toEqual({
+      secret: "SHENRON_ACTIVITY_SECRET",
+      token: "SHENRON_ACTIVITY_TOKEN",
+    });
+    const aliasNames: readonly string[] = Object.values(ENV_ALIASES).flat();
+    expect(aliasNames).not.toContain(ACTIVITY_ENV.secret);
+    expect(aliasNames).not.toContain(ACTIVITY_ENV.token);
+    expect(envString({ [ACTIVITY_ENV.secret]: "  value  " }, ACTIVITY_ENV.secret)).toBe("value");
   });
 });
