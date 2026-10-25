@@ -119,7 +119,6 @@ export const LAUNCH_CATEGORIES: LaunchCategory[] = [
     href: "/wiki/characters",
     prefixes: ["/wiki/characters", "/wiki/dragon-ball/character"],
     group: "wiki",
-    blurb: "1 300 fiches, du Saiyan au Kaïō",
   },
   {
     key: "races",
