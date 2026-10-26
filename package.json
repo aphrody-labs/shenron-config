@@ -16,6 +16,7 @@
   "type": "module",
   "sideEffects": false,
   "exports": {
+    "./game": "./src/game.ts",
     "./env": "./src/env.ts",
     "./jev": "./src/jev.ts",
     "./net": "./src/net.ts",
@@ -74,6 +75,7 @@
   },
   "shenron": {
     "runtime": {
+      "./game": "pure",
       "./admin": "pure",
       "./env": "pure",
       "./jev": "pure",
