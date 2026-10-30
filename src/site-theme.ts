@@ -38,6 +38,9 @@ export interface SiteTheme {
   fontScale: number;
   contentWidth: number;
   density: "compact" | "comfortable" | "spacious";
+  buttonShape: "rounded" | "pill" | "square";
+  buttonSize: "compact" | "comfortable" | "spacious";
+  buttonLabelCase: "uppercase" | "normal";
 }
 
 export const DEFAULT_SITE_THEME: SiteTheme = {
@@ -71,6 +74,9 @@ export const DEFAULT_SITE_THEME: SiteTheme = {
   fontScale: 1,
   contentWidth: 1720,
   density: "comfortable",
+  buttonShape: "rounded",
+  buttonSize: "comfortable",
+  buttonLabelCase: "uppercase",
 };
 
 const HEX = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
@@ -98,6 +104,15 @@ export function resolveSiteTheme(patch: unknown): SiteTheme {
   const density = ["compact", "comfortable", "spacious"].includes(String(p.density))
     ? (p.density as SiteTheme["density"])
     : DEFAULT_SITE_THEME.density;
+  const buttonShape = ["rounded", "pill", "square"].includes(String(p.buttonShape))
+    ? (p.buttonShape as SiteTheme["buttonShape"])
+    : DEFAULT_SITE_THEME.buttonShape;
+  const buttonSize = ["compact", "comfortable", "spacious"].includes(String(p.buttonSize))
+    ? (p.buttonSize as SiteTheme["buttonSize"])
+    : DEFAULT_SITE_THEME.buttonSize;
+  const buttonLabelCase = ["uppercase", "normal"].includes(String(p.buttonLabelCase))
+    ? (p.buttonLabelCase as SiteTheme["buttonLabelCase"])
+    : DEFAULT_SITE_THEME.buttonLabelCase;
   return {
     version: 1,
     colors,
@@ -106,14 +121,26 @@ export function resolveSiteTheme(patch: unknown): SiteTheme {
     density,
     fontScale: finite(p.fontScale, DEFAULT_SITE_THEME.fontScale, 0.875, 1.25),
     contentWidth: finite(p.contentWidth, DEFAULT_SITE_THEME.contentWidth, 960, 1920),
+    buttonShape,
+    buttonSize,
+    buttonLabelCase,
   };
 }
 
 export function isDefaultTheme(theme: SiteTheme): boolean {
   if (
-    (["radius", "fontFamily", "fontScale", "contentWidth", "density"] as const).some(
-      (key) => theme[key] !== DEFAULT_SITE_THEME[key],
-    )
+    (
+      [
+        "radius",
+        "fontFamily",
+        "fontScale",
+        "contentWidth",
+        "density",
+        "buttonShape",
+        "buttonSize",
+        "buttonLabelCase",
+      ] as const
+    ).some((key) => theme[key] !== DEFAULT_SITE_THEME[key])
   )
     return false;
   return (Object.keys(THEME_COLOR_VARS) as ThemeColorKey[]).every(
@@ -134,6 +161,25 @@ export function themeCssProperties(theme: SiteTheme): Record<string, string> {
     parts.push(`${THEME_COLOR_VARS[key]}:${theme.colors[key]}`);
   }
   parts.push(`--radius:${theme.radius}rem`);
+  parts.push(
+    `--site-button-radius:${
+      theme.buttonShape === "pill"
+        ? "9999px"
+        : theme.buttonShape === "square"
+          ? "0px"
+          : `${theme.radius}rem`
+    }`,
+  );
+  parts.push(
+    `--site-button-text-transform:${theme.buttonLabelCase === "uppercase" ? "uppercase" : "none"}`,
+  );
+  const buttonMetrics = {
+    compact: { minHeight: "2.5rem", inlinePadding: "0.75rem" },
+    comfortable: { minHeight: "2.75rem", inlinePadding: "1.25rem" },
+    spacious: { minHeight: "3.25rem", inlinePadding: "1.5rem" },
+  }[theme.buttonSize];
+  parts.push(`--site-button-min-height:${buttonMetrics.minHeight}`);
+  parts.push(`--site-button-inline-padding:${buttonMetrics.inlinePadding}`);
   parts.push(`--shell-max:${theme.contentWidth}px`);
   parts.push(`--site-font-size:${Number((theme.fontScale * 100).toFixed(3))}%`);
   parts.push(
