@@ -41,6 +41,9 @@ export interface SiteTheme {
   buttonShape: "rounded" | "pill" | "square";
   buttonSize: "compact" | "comfortable" | "spacious";
   buttonLabelCase: "uppercase" | "normal";
+  homeActionLayout: "row" | "stacked";
+  homeActionAlignment: "start" | "center" | "end";
+  panelStyle: "comic" | "soft" | "flat";
 }
 
 export const DEFAULT_SITE_THEME: SiteTheme = {
@@ -77,6 +80,9 @@ export const DEFAULT_SITE_THEME: SiteTheme = {
   buttonShape: "rounded",
   buttonSize: "comfortable",
   buttonLabelCase: "uppercase",
+  homeActionLayout: "row",
+  homeActionAlignment: "start",
+  panelStyle: "comic",
 };
 
 const HEX = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
@@ -113,6 +119,15 @@ export function resolveSiteTheme(patch: unknown): SiteTheme {
   const buttonLabelCase = ["uppercase", "normal"].includes(String(p.buttonLabelCase))
     ? (p.buttonLabelCase as SiteTheme["buttonLabelCase"])
     : DEFAULT_SITE_THEME.buttonLabelCase;
+  const homeActionLayout = ["row", "stacked"].includes(String(p.homeActionLayout))
+    ? (p.homeActionLayout as SiteTheme["homeActionLayout"])
+    : DEFAULT_SITE_THEME.homeActionLayout;
+  const homeActionAlignment = ["start", "center", "end"].includes(String(p.homeActionAlignment))
+    ? (p.homeActionAlignment as SiteTheme["homeActionAlignment"])
+    : DEFAULT_SITE_THEME.homeActionAlignment;
+  const panelStyle = ["comic", "soft", "flat"].includes(String(p.panelStyle))
+    ? (p.panelStyle as SiteTheme["panelStyle"])
+    : DEFAULT_SITE_THEME.panelStyle;
   return {
     version: 1,
     colors,
@@ -124,6 +139,9 @@ export function resolveSiteTheme(patch: unknown): SiteTheme {
     buttonShape,
     buttonSize,
     buttonLabelCase,
+    homeActionLayout,
+    homeActionAlignment,
+    panelStyle,
   };
 }
 
@@ -139,6 +157,9 @@ export function isDefaultTheme(theme: SiteTheme): boolean {
         "buttonShape",
         "buttonSize",
         "buttonLabelCase",
+        "homeActionLayout",
+        "homeActionAlignment",
+        "panelStyle",
       ] as const
     ).some((key) => theme[key] !== DEFAULT_SITE_THEME[key])
   )
@@ -180,6 +201,31 @@ export function themeCssProperties(theme: SiteTheme): Record<string, string> {
   }[theme.buttonSize];
   parts.push(`--site-button-min-height:${buttonMetrics.minHeight}`);
   parts.push(`--site-button-inline-padding:${buttonMetrics.inlinePadding}`);
+  parts.push(`--site-home-action-direction:${theme.homeActionLayout === "row" ? "row" : "column"}`);
+  const actionAlignment = {
+    start: "flex-start",
+    center: "center",
+    end: "flex-end",
+  }[theme.homeActionAlignment];
+  parts.push(`--site-home-action-justify:${actionAlignment}`);
+  parts.push(
+    `--site-home-action-align:${theme.homeActionLayout === "row" ? "center" : actionAlignment}`,
+  );
+  const panelShadows = {
+    comic: {
+      normal: "3px 3px 0 rgb(0 0 0 / 85%), inset 0 1px 0 rgb(255 255 255 / 5%)",
+      hover:
+        "4px 4px 0 rgb(0 0 0 / 95%), 0 0 20px color-mix(in srgb, var(--color-dbz-orange) 15%, transparent), inset 0 1px 0 rgb(255 255 255 / 8%)",
+    },
+    soft: {
+      normal: "0 8px 24px rgb(0 0 0 / 28%)",
+      hover: "0 12px 32px rgb(0 0 0 / 38%)",
+    },
+    flat: { normal: "none", hover: "none" },
+  }[theme.panelStyle];
+  parts.push(`--site-panel-shadow:${panelShadows.normal}`);
+  parts.push(`--site-panel-shadow-hover:${panelShadows.hover}`);
+  parts.push(`--site-panel-radius:${theme.radius}rem`);
   parts.push(`--shell-max:${theme.contentWidth}px`);
   parts.push(`--site-font-size:${Number((theme.fontScale * 100).toFixed(3))}%`);
   parts.push(

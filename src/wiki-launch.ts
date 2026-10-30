@@ -94,6 +94,16 @@ export const LAUNCH_CATEGORIES: LaunchCategory[] = [
     group: "archives",
     blurb: "Les planches, tome par tome",
   },
+  {
+    key: "cards",
+    label: "Cartes officielles",
+    href: "/wiki/cards",
+    prefixes: ["/wiki/cards"],
+    scope: "site",
+    defaultMode: "public",
+    group: "archives",
+    blurb: "Carddass, Jumbo et autres cartes officielles Dragon Ball",
+  },
   // ── Fermées par défaut, ouvrables une par une depuis /admin/launch ─────────
   //
   // Chaque rubrique garde son ANCIEN préfixe `/wiki/dragon-ball/…` en second :
