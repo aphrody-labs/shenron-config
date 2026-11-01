@@ -11,9 +11,10 @@
  * Runtime class: `server` (conformance tooling, reads files and spawns `bun`).
  */
 import { existsSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { builtinModules } from "node:module";
 import { basename, dirname, join, relative, resolve, sep } from "node:path";
+import { pathToFileURL } from "node:url";
 
 export type RuntimeClass = "pure" | "server" | "hono" | "react" | "next" | "bun";
 
@@ -268,12 +269,22 @@ interface Manifest {
   workspaces?: unknown;
 }
 
+const manifestCache = new Map<string, Manifest | null>();
+
 function readManifest(dir: string): Manifest | null {
-  const file = join(dir, "package.json");
-  if (!existsSync(file)) return null;
+  const key = resolve(dir);
+  if (manifestCache.has(key)) return manifestCache.get(key) ?? null;
+  const file = join(key, "package.json");
+  if (!existsSync(file)) {
+    manifestCache.set(key, null);
+    return null;
+  }
   try {
-    return JSON.parse(readFileSync(file, "utf8")) as Manifest;
+    const parsed = JSON.parse(readFileSync(file, "utf8")) as Manifest;
+    manifestCache.set(key, parsed);
+    return parsed;
   } catch {
+    manifestCache.set(key, null);
     return null;
   }
 }
@@ -593,16 +604,24 @@ function isEnvDefaultParameter(code: string, index: number): boolean {
  * `= process.env` is exempt in files named config.ts, env.ts or paths.ts.
  */
 function moduleLevelEnvReads(code: string, fileName: string): number[] {
-  const functionDepthAt: boolean[] = [];
+  const re = /(?<![\w$.])(?:process\s*\.\s*env|Bun\s*\.\s*env|import\s*\.\s*meta\s*\.\s*env)\b/g;
+  if (!re.test(code)) return [];
+  re.lastIndex = 0;
+  const functionDepthAt = new Uint8Array(code.length);
   const stack: boolean[] = [];
+  let fnCount = 0;
   for (let i = 0; i < code.length; i++) {
     const c = code[i];
-    if (c === "{") stack.push(isFunctionBrace(code, i));
-    else if (c === "}") stack.pop();
-    functionDepthAt[i] = stack.includes(true);
+    if (c === "{") {
+      const isFn = isFunctionBrace(code, i);
+      stack.push(isFn);
+      if (isFn) fnCount++;
+    } else if (c === "}") {
+      if (stack.pop()) fnCount--;
+    }
+    if (fnCount > 0) functionDepthAt[i] = 1;
   }
   const hits: number[] = [];
-  const re = /(?<![\w$.])(?:process\s*\.\s*env|Bun\s*\.\s*env|import\s*\.\s*meta\s*\.\s*env)\b/g;
   for (const match of code.matchAll(re)) {
     const index = match.index ?? 0;
     if (functionDepthAt[index]) continue;
@@ -788,7 +807,20 @@ export async function checkNoEscapingImports(packageDir: string): Promise<Offenc
 // Reduced child env on purpose: NODE_ENV is deliberately absent (declared required by app ProcessEnv augmentations).
 function reducedEnv(): NodeJS.ProcessEnv {
   const env: Record<string, string> = {};
-  for (const name of ["PATH", "Path", "SystemRoot", "TEMP", "TMP", "BUN_BE_BUN"]) {
+  for (const name of [
+    "PATH",
+    "Path",
+    "SystemRoot",
+    "TEMP",
+    "TMP",
+    "HOME",
+    "USERPROFILE",
+    "LOCALAPPDATA",
+    "APPDATA",
+    "PATHEXT",
+    "ComSpec",
+    "BUN_BE_BUN",
+  ]) {
     const value = process.env[name];
     if (typeof value === "string") env[name] = value;
   }
@@ -799,20 +831,90 @@ function bunExecutable(): string {
   return process.execPath;
 }
 
+function spawnAsync(
+  command: string,
+  args: string[],
+  options: { cwd: string; env: NodeJS.ProcessEnv; timeout: number },
+): Promise<{ status: number | null; stdout: string; stderr: string }> {
+  return new Promise((resolvePromise) => {
+    const child = spawn(command, args, {
+      cwd: options.cwd,
+      env: options.env,
+      stdio: ["ignore", "pipe", "pipe"],
+      timeout: options.timeout,
+    });
+    let stdout = "";
+    let stderr = "";
+    child.stdout?.setEncoding("utf8");
+    child.stderr?.setEncoding("utf8");
+    child.stdout?.on("data", (chunk: string) => {
+      stdout += chunk;
+    });
+    child.stderr?.on("data", (chunk: string) => {
+      stderr += chunk;
+    });
+    child.on("error", (err) => {
+      resolvePromise({ status: 1, stdout, stderr: `${stderr}\n${err.message}` });
+    });
+    child.on("close", (code) => {
+      resolvePromise({ status: code, stdout, stderr });
+    });
+  });
+}
+
 /**
  * Imports every exported subpath in a child `bun` with an environment reduced
  * to PATH (plus SystemRoot/TEMP/TMP on Windows). A non-zero exit is an offence.
  */
 export async function checkEmptyEnvImports(packageDir: string): Promise<Offence[]> {
   const dir = resolve(packageDir);
+  const candidates = listExportEntries(dir).filter(
+    (entry) =>
+      entry.declared !== "json" && /\.(?:m|c)?tsx?$/.test(entry.file) && existsSync(entry.file),
+  );
+  if (candidates.length === 0) return [];
+  const env = reducedEnv();
+  const hrefs = candidates.map((entry) => pathToFileURL(entry.file).href);
+  const marker = "__SHENRON_EMPTY_ENV_RESULT__";
+  const batchScript = [
+    `const hrefs = ${JSON.stringify(hrefs)};`,
+    "const failures = [];",
+    "for (let i = 0; i < hrefs.length; i++) {",
+    "  try { await import(hrefs[i]); } catch (e) {",
+    "    const text = e && typeof e === 'object' && 'stack' in e ? String(e.stack || e.message) : String(e);",
+    "    failures.push({ index: i, text });",
+    "  }",
+    "}",
+    `console.log(${JSON.stringify(marker)} + JSON.stringify(failures));`,
+  ].join("\n");
+  const batch = await spawnAsync(bunExecutable(), ["-e", batchScript], {
+    cwd: dir,
+    env,
+    timeout: 60_000,
+  });
+  const markerLine = batch.stdout.split("\n").find((line) => line.startsWith(marker));
+  if (batch.status === 0 && markerLine) {
+    const failures = JSON.parse(markerLine.slice(marker.length)) as {
+      index: number;
+      text: string;
+    }[];
+    return failures.map(({ index, text }) => {
+      const entry = candidates[index]!;
+      const lines = text.trim().split("\n").filter(Boolean);
+      const reason = lines.find((line) => /error/i.test(line)) ?? lines[0] ?? "import failed";
+      return {
+        file: relFile(dir, entry.file),
+        rule: "empty-env-import",
+        excerpt: `${entry.subpath}: ${reason.trim().slice(0, 200)}`,
+      };
+    });
+  }
   const offences: Offence[] = [];
-  for (const entry of listExportEntries(dir)) {
-    if (entry.declared === "json" || !/\.(?:m|c)?tsx?$/.test(entry.file) || !existsSync(entry.file))
-      continue;
-    const href = new URL(`file:///${toPosix(entry.file).replace(/^\//, "")}`).href;
+  for (const entry of candidates) {
+    const href = pathToFileURL(entry.file).href;
     const result = spawnSync(bunExecutable(), ["-e", `await import(${JSON.stringify(href)});`], {
       cwd: dir,
-      env: reducedEnv(),
+      env,
       encoding: "utf8",
       timeout: 60_000,
     });
@@ -840,57 +942,63 @@ export async function checkBrowserBundles(packageDir: string): Promise<Offence[]
   const root = findWorkspaceRoot(dirname(dir)) ?? dir;
   const manifest = readManifest(dir);
   const slug = (manifest?.name ?? basename(dir)).replace(/[@/]/g, "_").replace(/^_+/, "");
-  const offences: Offence[] = [];
-  for (const entry of listExportEntries(dir)) {
-    if (entry.runtime !== "pure" && entry.runtime !== "react") continue;
-    if (!existsSync(entry.file)) continue;
-    const outdir = join(
-      root,
-      "var",
-      "unification",
-      "tmp",
-      slug,
-      entry.subpath.replace(/[^\w.-]+/g, "_"),
-    );
-    rmSync(outdir, { recursive: true, force: true });
-    const result = spawnSync(
-      bunExecutable(),
-      [
-        "build",
-        entry.file,
-        "--target=browser",
-        "--outdir",
-        outdir,
-        "--external",
-        "react",
-        "--external",
-        "react-dom",
-      ],
-      { cwd: dir, encoding: "utf8", timeout: 120_000, env: reducedEnv() },
-    );
-    const rel = relFile(dir, entry.file);
-    if (result.status !== 0) {
-      const reason = `${result.stderr ?? ""}${result.stdout ?? ""}`
-        .split("\n")
-        .find((line) => /error/i.test(line));
-      offences.push({
-        file: rel,
-        rule: "browser-build",
-        excerpt: `${entry.subpath}: ${(reason ?? `exit ${result.status}`).trim().slice(0, 200)}`,
-      });
-      continue;
-    }
-    for (const output of listFiles(outdir)) {
-      if (!/\.(?:m|c)?js$/.test(output)) continue;
-      const text = readFileSync(output, "utf8");
-      const match = /["'`](node|bun):[\w/]*["'`]/.exec(text);
-      if (match)
-        offences.push({
+  const candidates = listExportEntries(dir).filter(
+    (entry) => (entry.runtime === "pure" || entry.runtime === "react") && existsSync(entry.file),
+  );
+  if (candidates.length === 0) return [];
+  const env = reducedEnv();
+  const results = await Promise.all(
+    candidates.map(async (entry) => {
+      const entryOffences: Offence[] = [];
+      const outdir = join(
+        root,
+        "var",
+        "unification",
+        "tmp",
+        slug,
+        entry.subpath.replace(/[^\w.-]+/g, "_"),
+      );
+      rmSync(outdir, { recursive: true, force: true });
+      const result = await spawnAsync(
+        bunExecutable(),
+        [
+          "build",
+          entry.file,
+          "--target=browser",
+          "--outdir",
+          outdir,
+          "--external",
+          "react",
+          "--external",
+          "react-dom",
+        ],
+        { cwd: dir, timeout: 120_000, env },
+      );
+      const rel = relFile(dir, entry.file);
+      if (result.status !== 0) {
+        const reason = `${result.stderr ?? ""}${result.stdout ?? ""}`
+          .split("\n")
+          .find((line) => /error/i.test(line));
+        entryOffences.push({
           file: rel,
-          rule: "browser-purity",
-          excerpt: `${entry.subpath}: ${match[0]}`,
+          rule: "browser-build",
+          excerpt: `${entry.subpath}: ${(reason ?? `exit ${result.status}`).trim().slice(0, 200)}`,
         });
-    }
-  }
-  return offences;
+        return entryOffences;
+      }
+      for (const output of listFiles(outdir)) {
+        if (!/\.(?:m|c)?js$/.test(output)) continue;
+        const text = readFileSync(output, "utf8");
+        const match = /["'`](node|bun):[\w/]*["'`]/.exec(text);
+        if (match)
+          entryOffences.push({
+            file: rel,
+            rule: "browser-purity",
+            excerpt: `${entry.subpath}: ${match[0]}`,
+          });
+      }
+      return entryOffences;
+    }),
+  );
+  return results.flat();
 }
