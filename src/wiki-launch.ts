@@ -398,6 +398,26 @@ export const SITE_SECTIONS: LaunchCategory[] = [
     group: "communaute",
     blurb: "L'actualité de la licence et les sorties du moment",
   },
+  {
+    key: "vip",
+    label: "Club VIP & Abonnement",
+    href: "/vip",
+    prefixes: ["/vip"],
+    scope: "site",
+    defaultMode: "public",
+    group: "communaute",
+    blurb: "Lecture sans publicité et soutien mensuel ou annuel (Stripe & PayPal)",
+  },
+  {
+    key: "donations",
+    label: "Dons & Genki Dama",
+    href: "/donations",
+    prefixes: ["/donations"],
+    scope: "site",
+    defaultMode: "public",
+    group: "communaute",
+    blurb: "Soutenir l'hébergement et la numérisation par un don ponctuel (Stripe & PayPal)",
+  },
   // (Ancienne section « Articles communautaires » sur /post : supprimée avec la
   // route. Les articles vivent sous /actualites, déjà couvert par l'entrée
   // ci-dessus, et /post/:slug est redirigé en 308 au niveau du routing — donc
