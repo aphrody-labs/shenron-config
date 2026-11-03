@@ -62,7 +62,8 @@ export const LAUNCH_CATEGORIES: LaunchCategory[] = [
     key: "episodes",
     label: "Épisodes",
     href: "/wiki/episodes",
-    prefixes: ["/wiki/episodes"],
+    // The GIF library exposes derivatives of the same published episodes.
+    prefixes: ["/wiki/episodes", "/wiki/gifs"],
     alwaysOpen: true,
     group: "oeuvres",
     blurb: "826 épisodes, de Dragon Ball à Daima",
@@ -158,7 +159,8 @@ export const LAUNCH_CATEGORIES: LaunchCategory[] = [
     key: "sagas",
     label: "Sagas",
     href: "/wiki/sagas",
-    prefixes: ["/wiki/sagas"],
+    // Narrative arcs share their parent saga's publication and access policy.
+    prefixes: ["/wiki/sagas", "/wiki/arcs"],
     group: "wiki",
     blurb: "Les grands arcs du récit",
   },
